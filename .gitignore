@@ -1,0 +1,14 @@
+# Build output
+build/
+build-zig/
+*.stripped
+*.o
+
+# Local config with secrets (never commit your real sessionKey)
+kindle/extensions/ai-usage/config
+config
+
+# Editor / OS
+*.swp
+*~
+.DS_Store

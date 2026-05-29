@@ -1,0 +1,21 @@
+{
+    "items": [
+    {
+        "name": "AI Usage",
+        "items": [
+        {
+            "name": "Start Dashboard",
+            "action": "./bin/start.sh",
+            "exitmenu": true,
+            "refresh": false
+        },
+        {
+            "name": "Stop / Restore Kindle",
+            "action": "./bin/stop.sh",
+            "exitmenu": false,
+            "refresh": false
+        }
+        ]
+    }
+    ]
+}

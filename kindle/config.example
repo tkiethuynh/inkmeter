@@ -1,0 +1,9 @@
+# AI Usage Kindle — configuration
+# Copy to /mnt/us/extensions/ai-usage/config
+
+# Your claude.ai sessionKey cookie
+# Get it: DevTools (F12) -> Application -> Cookies -> claude.ai -> sessionKey
+SESSION_KEY=sk-ant-sid02-YOUR_SESSION_KEY_HERE
+
+# How often to refresh (minutes)
+REFRESH_MINS=5
