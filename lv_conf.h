@@ -32,11 +32,11 @@
 /*=======================
  * FONT USAGE
  *=======================*/
-#define LV_FONT_MONTSERRAT_16 1
+#define LV_FONT_MONTSERRAT_16 0
 #define LV_FONT_MONTSERRAT_24 1
-#define LV_FONT_MONTSERRAT_36 1
+#define LV_FONT_MONTSERRAT_36 0
 #define LV_FONT_MONTSERRAT_48 1
-#define LV_FONT_DEFAULT &lv_font_montserrat_16
+#define LV_FONT_DEFAULT &lv_font_montserrat_24
 
 /*=================
  * DRIVERS

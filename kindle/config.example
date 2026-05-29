@@ -1,9 +1,16 @@
-# AI Usage Kindle — configuration
-# Copy to /mnt/us/extensions/ai-usage/config
+# inkmeter — configuration
+# Copy to /mnt/us/extensions/ai-usage/config and edit.
 
-# Your claude.ai sessionKey cookie
+# Your claude.ai sessionKey cookie.
 # Get it: DevTools (F12) -> Application -> Cookies -> claude.ai -> sessionKey
 SESSION_KEY=sk-ant-sid02-YOUR_SESSION_KEY_HERE
 
-# How often to refresh (minutes)
+# How often to refresh, in minutes.
 REFRESH_MINS=5
+
+# Timezone for the "resets ..." times, as a POSIX TZ string (the Kindle has no
+# tzdata, so Olson names like "Asia/Ho_Chi_Minh" do NOT work).
+# NOTE the inverted sign: UTC-7 means 7 hours AHEAD of UTC.
+#   Saigon/Bangkok = UTC-7   Tokyo = UTC-9   London = UTC0   New York = UTC+5
+# Leave blank to use UTC.
+TZ=UTC-7

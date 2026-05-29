@@ -2,15 +2,32 @@
 #include <cstdio>
 #include <string>
 
-static lv_obj_t* g_plan_label     = nullptr;
-static lv_obj_t* g_block_pct      = nullptr;
-static lv_obj_t* g_block_bar      = nullptr;
-static lv_obj_t* g_block_sub      = nullptr;
-static lv_obj_t* g_week_pct       = nullptr;
-static lv_obj_t* g_week_bar       = nullptr;
-static lv_obj_t* g_week_sub       = nullptr;
-static lv_obj_t* g_status_label   = nullptr;
-static lv_obj_t* g_time_label     = nullptr;
+static lv_obj_t* g_plan_label = nullptr;
+static lv_obj_t* g_block_pct  = nullptr;
+static lv_obj_t* g_block_bar  = nullptr;
+static lv_obj_t* g_block_sub  = nullptr;
+static lv_obj_t* g_week_pct   = nullptr;
+static lv_obj_t* g_week_bar   = nullptr;
+static lv_obj_t* g_week_sub   = nullptr;
+static lv_obj_t* g_time_label = nullptr;   /* footer "Updated HH:MM" */
+/* Top-right battery: a drawn outline whose fill tracks the charge level. */
+static lv_obj_t* g_batt_fill = nullptr;   /* black fill inside the body */
+static lv_obj_t* g_batt_text = nullptr;   /* "81%" */
+static const int BATT_INNER_W = 40;       /* body 46 - 2*3 border = 40px usable */
+
+static void set_battery(int b) {
+    if (!g_batt_text) return;
+    if (b < 0) {
+        lv_obj_set_width(g_batt_fill, 0);
+        lv_label_set_text(g_batt_text, "");
+        return;
+    }
+    if (b > 100) b = 100;
+    lv_obj_set_width(g_batt_fill, BATT_INNER_W * b / 100);
+    char s[8];
+    snprintf(s, sizeof(s), "%d%%", b);
+    lv_label_set_text(g_batt_text, s);
+}
 
 static std::string fmt_mins(int m) {
     if (m <= 0)  return "resetting soon";
@@ -106,19 +123,67 @@ void ui_create(lv_display_t*) {
 
     sep(scr);
 
-    /* Status / updated */
-    g_status_label = label(scr, &lv_font_montserrat_24, lv_color_black(), LV_TEXT_ALIGN_CENTER);
-    lv_label_set_text(g_status_label, "Connecting...");
-    lv_obj_set_width(g_status_label, lv_pct(100));
+    /* Footer: drawn battery + last-updated, centered at the bottom. */
+    lv_obj_t* footer = lv_obj_create(scr);
+    lv_obj_remove_style_all(footer);
+    lv_obj_clear_flag(footer, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_width(footer, lv_pct(100));
+    lv_obj_set_height(footer, LV_SIZE_CONTENT);
+    lv_obj_set_flex_flow(footer, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(footer, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_pad_column(footer, 18, 0);
 
-    g_time_label = label(scr, &lv_font_montserrat_24, lv_color_black(), LV_TEXT_ALIGN_CENTER);
+    /* battery group: body[fill] + nub + % */
+    lv_obj_t* box = lv_obj_create(footer);
+    lv_obj_remove_style_all(box);
+    lv_obj_clear_flag(box, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_size(box, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+    lv_obj_set_flex_flow(box, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(box, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_pad_column(box, 5, 0);
+
+    lv_obj_t* body = lv_obj_create(box);
+    lv_obj_remove_style_all(body);
+    lv_obj_clear_flag(body, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_size(body, 46, 24);
+    lv_obj_set_style_border_width(body, 3, 0);
+    lv_obj_set_style_border_color(body, lv_color_black(), 0);
+    lv_obj_set_style_radius(body, 4, 0);
+
+    g_batt_fill = lv_obj_create(body);
+    lv_obj_remove_style_all(g_batt_fill);
+    lv_obj_clear_flag(g_batt_fill, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_style_bg_color(g_batt_fill, lv_color_black(), 0);
+    lv_obj_set_style_bg_opa(g_batt_fill, LV_OPA_COVER, 0);
+    lv_obj_set_height(g_batt_fill, lv_pct(100));
+    lv_obj_set_width(g_batt_fill, 0);
+    lv_obj_align(g_batt_fill, LV_ALIGN_LEFT_MID, 0, 0);
+
+    lv_obj_t* nub = lv_obj_create(box);
+    lv_obj_remove_style_all(nub);
+    lv_obj_clear_flag(nub, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_size(nub, 4, 12);
+    lv_obj_set_style_radius(nub, 1, 0);
+    lv_obj_set_style_bg_color(nub, lv_color_black(), 0);
+    lv_obj_set_style_bg_opa(nub, LV_OPA_COVER, 0);
+
+    g_batt_text = lv_label_create(box);
+    lv_obj_set_style_text_font(g_batt_text, &lv_font_montserrat_24, 0);
+    lv_obj_set_style_text_color(g_batt_text, lv_color_black(), 0);
+    lv_label_set_text(g_batt_text, "");
+
+    /* last-updated, sits to the right of the battery in the footer row */
+    g_time_label = lv_label_create(footer);
+    lv_obj_set_style_text_font(g_time_label, &lv_font_montserrat_24, 0);
+    lv_obj_set_style_text_color(g_time_label, lv_color_black(), 0);
     lv_label_set_text(g_time_label, "");
-    lv_obj_set_width(g_time_label, lv_pct(100));
 }
 
 void ui_update(const UsageData& d, const Config&) {
+    set_battery(d.battery);   /* always show battery, success or not */
+
     if (!d.ok) {
-        /* No fresh data. Show why, and don't pass off 0% as real numbers. */
+        /* No fresh data. Show why (in the plan line), and don't pass off 0%. */
         lv_label_set_text(g_block_pct, "--");
         lv_label_set_text(g_week_pct,  "--");
         lv_bar_set_value(g_block_bar, 0, LV_ANIM_OFF);
@@ -127,7 +192,7 @@ void ui_update(const UsageData& d, const Config&) {
         lv_label_set_text(g_week_sub,  "");
         std::string msg = d.error;
         if (d.auth_error) msg += " - update sessionKey in config";
-        lv_label_set_text(g_status_label, msg.c_str());
+        lv_label_set_text(g_plan_label, msg.c_str());
         lv_label_set_text(g_time_label, "");
         return;
     }
@@ -154,8 +219,7 @@ void ui_update(const UsageData& d, const Config&) {
         : "resets " + d.weekly_reset_abs;
     lv_label_set_text(g_week_sub, wsub.c_str());
 
-    /* Footer: last-updated */
-    lv_label_set_text(g_status_label, "");
+    /* Footer */
     std::string upd = "Updated " + d.updated;
     lv_label_set_text(g_time_label, upd.c_str());
 }

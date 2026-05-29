@@ -5,7 +5,7 @@ It shows your Claude usage limits (5-hour block + 7-day week) on the e-ink scree
 like a lockscreen, refreshes itself every few minutes, and sips almost no battery
 by truly suspending between updates.
 
-![screenshot](docs/screenshot.png)
+<img src="docs/screenshot.png" width="400" alt="screenshot">
 
 > **v1** tracks [claude.ai](https://claude.ai) usage. Multi-provider support
 > (OpenAI, Gemini, …) is planned — see [Roadmap](#roadmap).

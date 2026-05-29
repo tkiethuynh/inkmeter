@@ -15,9 +15,10 @@ FL=/sys/class/backlight/max77696-bl/brightness
 LOG=/tmp/ai-usage.log
 LOCK=/tmp/ai-usage-dashboard.pid
 
-export TZ=UTC-7   # Saigon (UTC+7) for the "Updated HH:MM" timestamp
+# Config values (POSIX TZ string + refresh interval), with sane defaults.
+TZ=$(grep '^TZ=' "$CONFIG" 2>/dev/null | cut -d= -f2)
+[ -n "$TZ" ] && export TZ
 
-# Refresh interval (minutes) from config, default 5
 REFRESH_MINS=$(grep '^REFRESH_MINS=' "$CONFIG" 2>/dev/null | cut -d= -f2)
 [ -z "$REFRESH_MINS" ] && REFRESH_MINS=5
 REFRESH=$((REFRESH_MINS * 60))
@@ -41,6 +42,7 @@ trap restore_and_exit TERM INT
 # Let KUAL finish closing and the framework settle on the home screen before we
 # take over — otherwise KUAL's exit re-enables pillow and redraws home over us.
 sleep 5
+lipc-set-prop com.lab126.powerd preventScreenSaver 1 2>/dev/null || true
 echo 0 > "$FL" 2>/dev/null || true
 
 FIRST=1

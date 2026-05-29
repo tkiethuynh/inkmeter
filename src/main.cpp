@@ -117,9 +117,6 @@ static uint32_t tick_cb() {
 }
 
 int main(int argc, char* argv[]) {
-    setenv("TZ", "UTC-7", 1);  /* Saigon UTC+7 for the "Updated HH:MM" line */
-    tzset();
-
     const char* config_path = "/mnt/us/extensions/ai-usage/config";
     const char* fbdev_path  = "/dev/fb0";
     bool ghost_clear = false;   /* pass --clear on the first render only */
@@ -129,6 +126,10 @@ int main(int argc, char* argv[]) {
         if (strcmp(argv[i], "--clear") == 0) ghost_clear = true;
 
     Config cfg = load_config(config_path);
+
+    /* Apply timezone from config for the "resets ..." local times.
+       Kindle musl has no tzdata, so use a POSIX TZ string like "UTC-7". */
+    if (!cfg.tz.empty()) { setenv("TZ", cfg.tz.c_str(), 1); tzset(); }
 
     lv_init();
     lv_tick_set_cb(tick_cb);

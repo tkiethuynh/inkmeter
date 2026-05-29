@@ -50,6 +50,14 @@ static std::string fmt_abs(const std::string& iso) {
     return b;
 }
 
+/* Kindle battery percentage, or -1 if unreadable. */
+static int read_battery() {
+    std::ifstream f("/sys/class/power_supply/max77696-battery/capacity");
+    int v = -1;
+    if (f.is_open()) f >> v;
+    return v;
+}
+
 static int mins_until(const std::string& iso) {
     if (iso.empty()) return 0;
     int Y, M, D, h, m, s;
@@ -77,6 +85,7 @@ Config load_config(const char* path) {
         auto v = line.substr(eq + 1);
         if (k == "SESSION_KEY")  cfg.session_key = v;
         if (k == "REFRESH_MINS") cfg.refresh_mins = std::stoi(v);
+        if (k == "TZ")           cfg.tz = v;
     }
     return cfg;
 }
@@ -95,6 +104,7 @@ static std::string claude_get(const std::string& url, const std::string& sk) {
 
 UsageData fetch_usage(const Config& cfg) {
     UsageData d;
+    d.battery = read_battery();   /* independent of the network fetch */
 
     if (cfg.session_key.empty()) {
         d.error = "No session key set"; d.auth_error = true; return d;
@@ -138,10 +148,10 @@ UsageData fetch_usage(const Config& cfg) {
         d.weekly_reset_abs  = fmt_abs(sd_reset);   /* absolute "Wed 21:08" */
     }
 
+    char tbuf[8];
     time_t now = time(nullptr);
-    char buf[8];
-    strftime(buf, sizeof(buf), "%H:%M", localtime(&now));
-    d.updated = buf;
+    strftime(tbuf, sizeof(tbuf), "%H:%M", localtime(&now));
+    d.updated = tbuf;
     d.ok = true;
     return d;
 }
