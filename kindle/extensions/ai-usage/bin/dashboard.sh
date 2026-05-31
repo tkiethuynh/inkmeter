@@ -52,6 +52,20 @@ while true; do
     # the whole awake refresh window every cycle.
     echo 0 > "$FL" 2>/dev/null || true
 
+    # --- SAFETY: never sit awake without a wake alarm armed. ---
+    # The render window below sits awake for up to ~30s waiting on WiFi
+    # reassociation. That is the one place with no RTC alarm pending (the
+    # previous one already fired; the next is armed only after render). If the
+    # device suspends here — native powerd idle-suspend, most likely when WiFi
+    # is down and we're stuck in the wait loop — there is no alarm to wake it
+    # and it sleeps until some unrelated external event (observed: a flaky-WiFi
+    # cycle slept ~6h overnight). Arm now+REFRESH up front so any suspend in
+    # this window still wakes on schedule; the post-render arm below re-sets it.
+    lipc-set-prop com.lab126.powerd preventScreenSaver 1 2>/dev/null || true
+    SAFE=$(cat "$RTC/since_epoch")
+    echo 0                    > "$RTC/wakealarm" 2>/dev/null
+    echo $((SAFE + REFRESH))  > "$RTC/wakealarm" 2>/dev/null
+
     # --- bring WiFi up and wait for a real IP (reassociation after resume can
     #     take a while; too short a wait => fetch fails on the cycle) ---
     ifconfig wlan0 up 2>/dev/null
