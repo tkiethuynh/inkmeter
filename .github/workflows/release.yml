@@ -1,0 +1,77 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    name: Build and Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Build Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build zip
+
+      - name: Setup Zig Toolchain
+        run: |
+          ZIG_VER=0.13.0
+          echo "==> Downloading Zig $ZIG_VER..."
+          wget -q "https://ziglang.org/download/$ZIG_VER/zig-linux-x86_64-$ZIG_VER.tar.xz" -O /tmp/zig.tar.xz
+          tar -xf /tmp/zig.tar.xz -C /tmp/
+          echo "ZIG=/tmp/zig-linux-x86_64-$ZIG_VER/zig" >> $GITHUB_ENV
+
+      - name: Create Cross-Compiler Wrappers
+        run: |
+          cat > /tmp/zig-arm-cc  <<EOF
+          #!/bin/sh
+          exec ${{ env.ZIG }} cc  -target arm-linux-musleabi -mcpu=cortex_a9 "\$@"
+          EOF
+          cat > /tmp/zig-arm-cxx <<EOF
+          #!/bin/sh
+          exec ${{ env.ZIG }} c++ -target arm-linux-musleabi -mcpu=cortex_a9 "\$@"
+          EOF
+          cat > /tmp/zig-arm-ar  <<EOF
+          #!/bin/sh
+          exec ${{ env.ZIG }} ar "\$@"
+          EOF
+          chmod +x /tmp/zig-arm-cc /tmp/zig-arm-cxx /tmp/zig-arm-ar
+
+      - name: Build Application
+        run: |
+          cmake . -Bbuild-zig -DCMAKE_TOOLCHAIN_FILE=toolchain-arm.cmake -DCMAKE_BUILD_TYPE=Release -Wno-dev
+          cmake --build build-zig -j$(nproc)
+          ${{ env.ZIG }} objcopy --strip-all build-zig/ai-usage build-zig/ai-usage.stripped
+
+      - name: Package Extension
+        run: |
+          # Create deployment structure
+          mkdir -p dist/extensions/ai-usage/bin
+          
+          # Copy files matching deploy.sh
+          cp build-zig/ai-usage.stripped                 dist/extensions/ai-usage/bin/ai-usage
+          cp kindle/extensions/ai-usage/config.xml       dist/extensions/ai-usage/config.xml
+          cp kindle/extensions/ai-usage/menu.json        dist/extensions/ai-usage/menu.json
+          cp kindle/extensions/ai-usage/bin/dashboard.sh dist/extensions/ai-usage/bin/dashboard.sh
+          cp kindle/extensions/ai-usage/bin/start.sh     dist/extensions/ai-usage/bin/start.sh
+          cp kindle/extensions/ai-usage/bin/stop.sh      dist/extensions/ai-usage/bin/stop.sh
+          cp kindle/config.example                       dist/extensions/ai-usage/config.example
+          
+          # Zip it up
+          cd dist
+          zip -r ../ai-usage-${{ github.ref_name }}.zip extensions/
+          cd ..
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ai-usage-${{ github.ref_name }}.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
